@@ -91,8 +91,7 @@ RUN mkdir /gen/ \
     && ssh-keyscan -t rsa github.homedepot.com >> ~/.ssh/known_hosts
 
 # # This may be really bad practice... But gotta get the script for entrypoint somehow.
-ARG entry_script_url=https://raw.github.homedepot.com/OneSupplyChain/Shell/chore/161233796-pipeline-artifactory-apk-push/dockerScripts/entrypoint.sh?token=AAAcNmnRc2EN05bEAOwrTZf8jL2QzOK9ks5cJj65wA%3D%3D
-# MASTER: https://raw.github.homedepot.com/OneSupplyChain/Shell/master/dockerScripts/entrypoint.sh?token=AAAcNotap_wsGPDRD9e0HBBtF0nkJRgRks5cJAsCwA%3D%3D
+ARG entry_script_url=https://raw.githubusercontent.com/matthewduaneTHD/docker-android/master/entrypoint
 RUN mkdir /dockerEntry/ \
     && wget "${entry_script_url}" -O /dockerEntry/entrypoint \
 ## ALTERNATIVE (to wget a private THD git repo):
@@ -116,10 +115,11 @@ RUN mkdir /dockerEntry/ \
 # cp /Shell/app/build/*.apk /gen/app.apk\n\
 # sleep 5 \n\
 # echo "-----------end of entrypoint---------------"\n\
-# exec "$@"\n' >> /dockerEntry/entrypoint \
+# \n' >> /dockerEntry/entrypoint \
     && chmod +x /dockerEntry/entrypoint \
     && cat /dockerEntry/entrypoint
 
 WORKDIR ${CODE_REPO}
 
 ENTRYPOINT [ "/dockerEntry/entrypoint" ]
+
