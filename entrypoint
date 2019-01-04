@@ -1,0 +1,23 @@
+#!/bin/sh
+echo "-----------entered entrypoint.sh---------------"
+echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+chmod 600 ~/.ssh/id_rsa
+# Clone the repo, and JUST your repo.
+git clone ${REPO_SSH_URL} --single-branch --branch ${BRANCH} ${CODE_REPO}
+
+echo "-----------Verify by listing...---------------"
+cd ${CODE_REPO}
+ls -hAlt
+sleep 5
+
+echo "---------------building apk------------------"
+./gradlew clean
+./gradlew cleanBuildCache
+./gradlew assembleRelease --stacktrace
+
+echo "---------------moving apk------------------"
+ls -hAlt /Shell/app/build
+cp /Shell/app/build/*.apk /gen/app.apk
+sleep 5
+
+echo "-----------end of entrypoint.sh---------------"
