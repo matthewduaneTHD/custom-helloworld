@@ -84,42 +84,23 @@ RUN mkdir ${ANDROID_HOME}/add-ons \
     && unzip -q EMDK_6.9.zip -d ${ANDROID_HOME} \
     && mv /${ANDROID_HOME}/EMDK_6.9/addon-symbol_emdk-symbol-22 /${ANDROID_HOME}/add-ons/
 
+ARG entry_script_url=https://raw.githubusercontent.com/matthewduaneTHD/docker-android/master/entrypoint
 # # Making directories and files that will be needed
 RUN mkdir /gen/ \
 # add github public keys to known hosts
     && mkdir ~/.ssh/ \
-    && ssh-keyscan -t rsa github.homedepot.com >> ~/.ssh/known_hosts
-
-# # This may be really bad practice... But gotta get the script for entrypoint somehow.
-ARG entry_script_url=https://raw.githubusercontent.com/matthewduaneTHD/docker-android/master/entrypoint
-RUN mkdir /dockerEntry/ \
+    && ssh-keyscan -t rsa github.homedepot.com >> ~/.ssh/known_hosts \
+    && mkdir /dockerEntry/ \
     && wget "${entry_script_url}" -O /dockerEntry/entrypoint \
-## ALTERNATIVE (to wget a private THD git repo):
+## ALTERNATIVE (to wget from an internet resource):
 #     && touch /dockerEntry/entrypoint \
 #     && printf '#!/bin/sh\n\
 # echo "-----------entered entrypoint---------------"\n\
-# echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa \n\
-# chmod 600 ~/.ssh/id_rsa \n\
-# # Clone the repo, and JUST your repo.\n\
-# git clone ${REPO_SSH_URL} --single-branch --branch ${BRANCH} ${CODE_REPO} \n\
-# echo "-----------Verify by listing...---------------" \n\
-# cd ${CODE_REPO} \n\
-# ls -hAlt \n\
-# sleep 5 \n\
-# echo "---------------building apk------------------"\n\
-# ./gradlew clean\n\
-# ./gradlew cleanBuildCache\n\
-# ./gradlew assembleRelease --stacktrace\n\
-# echo "---------------moving apk------------------"\n\
-# ls -hAlt /Shell/app/buildn\n\
-# cp /Shell/app/build/*.apk /gen/app.apk\n\
-# sleep 5 \n\
+# ..........................
 # echo "-----------end of entrypoint---------------"\n\
 # \n' >> /dockerEntry/entrypoint \
-    && chmod +x /dockerEntry/entrypoint \
-    && cat /dockerEntry/entrypoint
+    && chmod +x /dockerEntry/entrypoint
 
 WORKDIR ${CODE_REPO}
 
 ENTRYPOINT [ "/dockerEntry/entrypoint" ]
-

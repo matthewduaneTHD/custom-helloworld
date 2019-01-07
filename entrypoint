@@ -1,23 +1,27 @@
 #!/bin/sh
 echo "-----------entered entrypoint.sh---------------"
-echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
-chmod 600 ~/.ssh/id_rsa
-# Clone the repo, and JUST your repo.
-git clone ${REPO_SSH_URL} --single-branch --branch ${BRANCH} ${CODE_REPO}
+if [[ "$SSH_PRIVATE_KEY" == "$BRANCH" && "$BRANCH" == "$REPO_SSH_URL" ]]; then
+    echo "CI/CD is assumed, no need to clone the repo"
+else
+    echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+    chmod 600 ~/.ssh/id_rsa
+    # Clone the repo, and JUST your repo.
+    git clone ${REPO_SSH_URL} --single-branch --branch ${BRANCH} ${CODE_REPO} 
+fi
 
 echo "-----------Verify by listing...---------------"
-cd ${CODE_REPO}
+# cd ${CODE_REPO}
 ls -hAlt
 sleep 5
 
 echo "---------------building apk------------------"
-./gradlew clean
-./gradlew cleanBuildCache
-./gradlew assembleRelease --stacktrace
+${CODE_REPO}/gradlew clean
+${CODE_REPO}/gradlew cleanBuildCache
+${CODE_REPO}/gradlew assembleRelease --stacktrace
 
 echo "---------------moving apk------------------"
-ls -hAlt /Shell/app/build
-cp /Shell/app/build/*.apk /gen/app.apk
+ls -hAlt ${CODE_REPO}/app/build
+cp ${CODE_REPO}/app/build/*.apk /gen/app.apk
 sleep 5
 
 echo "-----------end of entrypoint.sh---------------"
