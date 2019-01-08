@@ -1,6 +1,6 @@
 #!/bin/sh
 echo "-----------entered entrypoint.sh---------------"
-if [[ "$SSH_PRIVATE_KEY" == "$BRANCH" && "$BRANCH" == "$REPO_SSH_URL" ]]; then
+if [ "$SSH_PRIVATE_KEY" = "$BRANCH" -a "$BRANCH" = "$REPO_SSH_URL" ]; then
     echo "CI/CD is assumed, no need to clone the repo. Setting the code location to the current working directory"
     export CODE_REPO=$(pwd)
     echo "If running locally, please override SSH related environment variables"
@@ -12,7 +12,6 @@ else
 fi
 
 echo "-----------Verify by listing...---------------"
-# cd ${CODE_REPO}
 ls -hAlt
 sleep 5
 
