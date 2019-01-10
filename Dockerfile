@@ -1,7 +1,7 @@
 ### HOW TO USE THIS
-# this is intended to remove the local machine, and any inconsistencies, from the build process
-# The following steps should be run from whichever directory has the dockerfile from OneSupplyChain/Shell GIT repo.
-# Keep in mind it will create a folder named `gen` inside whatever folder you run it from
+# This is intended to remove the local machine, and any inconsistencies, from the android build process.
+# The following examples assume the command is run from whichever directory has the Dockerfile.
+# Keep in mind running the image will create a folder named `gen` which will contain the generated apk.
 # 1. docker build -t [__your image name:your tag__] - < Dockerfile
 #     a) example: docker build -t apkbuilder:latest - < Dockerfile
 # 2. docker run -v "$(pwd)"/gen:/gen --env BRANCH=[__your branch here__] --env SSH_PRIVATE_KEY="[__your ssh private key__] --env REPO_SSH_URL="[__your git repo here__]" __your image name:__
@@ -12,8 +12,6 @@
 # 4. run `adb install -r ./gen/app.apk`
 # 5. ??? 
 # 6. PROFIT
-# 
-# ###### MAKE SURE YOUR BRANCH HAS THE `./dockerScripts/entrypoint.sh` OTHERWISE THIS WILL BOMB ##########
 
 # # ---------------------------------------------------------------------------------------------------------------------------------
 FROM openjdk:8-slim
@@ -63,7 +61,6 @@ RUN wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
 
 # # Install/update Android tools
 RUN echo 'Changing permissions for android sdk recursively' \
-&& echo $0 \
     && chmod -R 777 ${ANDROID_HOME}/tools \
     && printf "${paging}" \
     && echo 'Listing what is currently installed for SDK, then installing all tools' \
@@ -82,14 +79,15 @@ RUN mkdir ${ANDROID_HOME}/add-ons \
     && wget -q https://storage.googleapis.com/1sc_mercury_resources/EMDK_6.9.zip -O EMDK_6.9.zip \
 # Unzip the file and put addon-symbol_emdk-symbol-22 to the right directory
     && unzip -q EMDK_6.9.zip -d ${ANDROID_HOME} \
-    && mv /${ANDROID_HOME}/EMDK_6.9/addon-symbol_emdk-symbol-22 /${ANDROID_HOME}/add-ons/
+    && mv ${ANDROID_HOME}/EMDK_6.9/addon-symbol_emdk-symbol-22 ${ANDROID_HOME}/add-ons/
 
-ARG entry_script_url=https://raw.githubusercontent.com/matthewduaneTHD/docker-android/master/entrypoint
 # # Making directories and files that will be needed
+ARG github_url=github.homedepot.com
+ARG entry_script_url=https://raw.githubusercontent.com/matthewduaneTHD/docker-android/master/entrypoint
 RUN mkdir /gen/ \
 # add github public keys to known hosts
     && mkdir ~/.ssh/ \
-    && ssh-keyscan -t rsa github.homedepot.com >> ~/.ssh/known_hosts \
+    && ssh-keyscan -t rsa "${github_url}" >> ~/.ssh/known_hosts \
     && mkdir /dockerEntry/ \
     && wget "${entry_script_url}" -O /dockerEntry/entrypoint \
 ## ALTERNATIVE (to wget from an internet resource):

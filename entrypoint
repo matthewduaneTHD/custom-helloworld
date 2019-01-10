@@ -12,7 +12,7 @@ else
 fi
 
 echo "-----------Verify by listing...---------------"
-ls -hAlt
+ls -hAlt $(pwd)
 sleep 5
 
 echo "---------------building apk------------------"
