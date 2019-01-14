@@ -76,10 +76,12 @@ RUN echo 'Changing permissions for android sdk recursively' \
 
 # # Getting EMDK.zip to the image.
 RUN mkdir ${ANDROID_HOME}/add-ons \
+# https://www.zebra.com/content/dam/zebra_new_ia/en-us/software/developer-tools/emdk-for-android/EMDK-A-0609024-MAC.zip
     && wget -q https://storage.googleapis.com/1sc_mercury_resources/EMDK_6.9.zip -O EMDK_6.9.zip \
-# Unzip the file and put addon-symbol_emdk-symbol-22 to the right directory
+# Unzip the file and put addon-symbol_emdk-symbol-{your platform version} to the right directory
     && unzip -q EMDK_6.9.zip -d ${ANDROID_HOME} \
-    && mv ${ANDROID_HOME}/EMDK_6.9/addon-symbol_emdk-symbol-22 ${ANDROID_HOME}/add-ons/
+    && ls -hAlt ${ANDROID_HOME}/EMDK_6.9 \
+    && mv ${ANDROID_HOME}/EMDK_6.9/addon-symbol_emdk-symbol-${ANDROID_VERSION} ${ANDROID_HOME}/add-ons/
 
 # # Making directories and files that will be needed
 ARG github_url=github.homedepot.com
