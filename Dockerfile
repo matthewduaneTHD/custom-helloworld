@@ -1,9 +1,10 @@
 ### HOW TO USE THIS
 # This is intended to remove the local machine, and any inconsistencies, from the android build process.
-# The following examples assume the command is run from whichever directory has the Dockerfile.
-# Keep in mind running the image will create a folder named `gen` which will contain the generated apk.
-# 1. docker build -t [__your image name:your tag__] - < Dockerfile
-#     a) example: docker build -t apkbuilder:latest - < Dockerfile
+# The following examples assume the `docker build` command is given a URL which has a Dockerfile at the base level
+# and a folder (`dockerScripts`) with a script named `entry<something>`.
+# Keep in mind running the image created by the dockerfile will create a folder named `gen` which will contain the generated apk.
+# 1. docker build -t [__your image name:your tag__] [__URL here#branch name here__]
+#     a) example: docker build --no-cache --squash -t apkbuilder:latest git@github.com:matthewduaneTHD/docker-android.git#master
 # 2. docker run -v "$(pwd)"/gen:/gen --env BRANCH=[__your branch here__] --env SSH_PRIVATE_KEY="[__your ssh private key__] --env REPO_SSH_URL="[__your git repo here__]" __your image name:__
 #     example) docker run -v "$(pwd)"/gen:/gen --env BRANCH="$(git rev-parse --abbrev-ref HEAD)" --env SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" --env REPO_SSH_URL="git@github.homedepot.com:OneSupplyChain/Shell.git" apkbuilder
 #       HINT: "$(git rev-parse --abbrev-ref HEAD)" for current branch name; can just use "master" if thats what you want.
@@ -12,6 +13,12 @@
 # 4. run `adb install -r ./gen/app.apk`
 # 5. ??? 
 # 6. PROFIT
+######################################
+# TL;DR:
+# docker build --no-cache --squash -t apkbuilder:latest git@github.com:matthewduaneTHD/docker-android.git#master
+# docker run -v "$(pwd)"/gen:/gen --env BRANCH="$(git rev-parse --abbrev-ref HEAD)" --env SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" --env REPO_SSH_URL="git@<yourgithub>.git" apkbuilder
+# adb uninstall <your_app>
+# adb install -r ./gen/app.apk
 
 # # ---------------------------------------------------------------------------------------------------------------------------------
 FROM openjdk:8-slim
@@ -45,6 +52,16 @@ RUN apt-get update && apt-get install -y \
     unzip \
     wget \
     && rm -rf /var/lib/apt/lists/*
+
+# # Making directories and files that will be needed
+ARG github_url=github.homedepot.com
+RUN mkdir /gen/ \
+# add github public keys to known hosts
+    && mkdir ~/.ssh/ \
+    && ssh-keyscan -t rsa "${github_url}" >> ~/.ssh/known_hosts \
+    && mkdir /dockerEntry/
+
+COPY dockerScripts/entry* /dockerEntry/entrypoint
 
 WORKDIR ${ANDROID_HOME}
 
@@ -81,25 +98,12 @@ RUN mkdir ${ANDROID_HOME}/add-ons \
 # Unzip the file and put addon-symbol_emdk-symbol-{your platform version} to the right directory
     && unzip -q EMDK_6.9.zip -d ${ANDROID_HOME} \
     && ls -hAlt ${ANDROID_HOME}/EMDK_6.9 \
-    && mv ${ANDROID_HOME}/EMDK_6.9/addon-symbol_emdk-symbol-${ANDROID_VERSION} ${ANDROID_HOME}/add-ons/
+    && mv ${ANDROID_HOME}/EMDK_6.9/addon-symbol_emdk-symbol-${ANDROID_VERSION} ${ANDROID_HOME}/add-ons/ \
+    && chmod -R 777 ${ANDROID_HOME}/add-ons \
+    && ls -hAlt ${ANDROID_HOME}/add-ons/ \
+    && rm -rf ${ANDROID_HOME}/EMDK_6.9 \
+    && rm ${ANDROID_HOME}/EMDK_6.9.zip
 
-# # Making directories and files that will be needed
-ARG github_url=github.homedepot.com
-ARG entry_script_url=https://raw.githubusercontent.com/matthewduaneTHD/docker-android/master/entrypoint
-RUN mkdir /gen/ \
-# add github public keys to known hosts
-    && mkdir ~/.ssh/ \
-    && ssh-keyscan -t rsa "${github_url}" >> ~/.ssh/known_hosts \
-    && mkdir /dockerEntry/ \
-    && wget "${entry_script_url}" -O /dockerEntry/entrypoint \
-## ALTERNATIVE (to wget from an internet resource):
-#     && touch /dockerEntry/entrypoint \
-#     && printf '#!/bin/sh\n\
-# echo "-----------entered entrypoint---------------"\n\
-# ..........................
-# echo "-----------end of entrypoint---------------"\n\
-# \n' >> /dockerEntry/entrypoint \
-    && chmod +x /dockerEntry/entrypoint
 
 WORKDIR ${CODE_REPO}
 
