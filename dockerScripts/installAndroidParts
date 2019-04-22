@@ -1,0 +1,11 @@
+#! /bin/bash
+
+while IFS=';' read -ra ADDR; do
+      for i in "${ADDR[@]}"; do
+          # process "$i"
+          com=$1$i
+          echo $com
+          echo yes | sdkmanager "${com}"
+      done
+ done <<< "$2"
+ 

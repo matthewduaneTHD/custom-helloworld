@@ -46,12 +46,25 @@ ENV PATH ${PATH}:${ANDROID_HOME}:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin
 # Install necessary linux tools to grab the sdk
 RUN apt-get update && apt-get install -y \
     bash \
+    ca-certificates \
+    curl \
     git \
     openssh-client \
     openssh-server \
+    openssl \
     unzip \
     wget \
     && rm -rf /var/lib/apt/lists/*
+
+# # add any self-signed certs to image
+COPY certificates /certs/
+
+RUN cp /certs/*.pem /etc/ssl/certs \
+    && ls /etc/ssl/certs \
+    && update-ca-certificates
+
+RUN for i in /certs/*.cer; do keytool -importcert -alias homedepot -file "$i"  -keystore $(update-alternatives --query java | grep 'Value: ' | grep -o '/.*/jre')/lib/security/cacerts -storepass changeit --noprompt; done
+
 
 # # Making directories and files that will be needed
 ARG github_url=github.homedepot.com
@@ -66,8 +79,9 @@ COPY dockerScripts/entry* /dockerEntry/entrypoint
 WORKDIR ${ANDROID_HOME}
 
 # # Install Android SDK
+RUN echo | openssl s_client -showcerts -servername dl.google.com -connect dl.google.com:443 2>/dev/null | openssl x509 -inform pem -noout -text
 # RUN wget -q http://dl.google.com/android/repository/tools_r${SDK_TOOLS_VERSION}-linux.zip -O android-sdk-tools.zip \
-RUN wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip -O android-sdk-tools.zip \
+RUN wget -nv https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip -O android-sdk-tools.zip \
     && unzip -q android-sdk-tools.zip -d ${ANDROID_HOME} \
     && rm -f android-sdk-tools.zip
 # # Alternate way...
@@ -76,16 +90,20 @@ RUN wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
 #     && mv android-sdk-linux /usr/local/android-sdk \
 #     && rm android-sdk_r24.4.1-linux.tgz
 
-# # Install/update Android tools
+# # # Install/update Android tools
 RUN echo 'Changing permissions for android sdk recursively' \
     && chmod -R 777 ${ANDROID_HOME}/tools \
     && printf "${paging}" \
     && echo 'Listing what is currently installed for SDK, then installing all tools' \
     && sdkmanager --list \
-    && echo yes | sdkmanager "platform-tools" \
-    && echo yes | sdkmanager "platforms;android-${ANDROID_VERSION}" \
-    && echo yes | sdkmanager "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
-    && printf "${paging}" \
+    && echo yes | sdkmanager "platform-tools"
+
+COPY dockerScripts/installAndroidParts /tmp/
+RUN /tmp/installAndroidParts "platforms;android-" "${ANDROID_VERSION}" \
+    && /tmp/installAndroidParts "build-tools;" "${ANDROID_BUILD_TOOLS_VERSION}" \
+    && rm /tmp/installAndroidParts
+
+RUN printf "${paging}" \
     && echo 'Printing current list of installed tools' \
     && sdkmanager --list \
     && printf "${paging}" \
@@ -94,11 +112,11 @@ RUN echo 'Changing permissions for android sdk recursively' \
 # # Getting EMDK.zip to the image.
 RUN mkdir ${ANDROID_HOME}/add-ons \
 # https://www.zebra.com/content/dam/zebra_new_ia/en-us/software/developer-tools/emdk-for-android/EMDK-A-0609024-MAC.zip
-    && wget -q https://storage.googleapis.com/1sc_mercury_resources/EMDK_6.9.zip -O EMDK_6.9.zip \
+    && wget -nv https://storage.googleapis.com/1sc_mercury_resources/EMDK_6.9.zip -O EMDK_6.9.zip \
 # Unzip the file and put addon-symbol_emdk-symbol-{your platform version} to the right directory
     && unzip -q EMDK_6.9.zip -d ${ANDROID_HOME} \
     && ls -hAlt ${ANDROID_HOME}/EMDK_6.9 \
-    && mv ${ANDROID_HOME}/EMDK_6.9/addon-symbol_emdk-symbol-${ANDROID_VERSION} ${ANDROID_HOME}/add-ons/ \
+    && mv ${ANDROID_HOME}/EMDK_6.9/addon* ${ANDROID_HOME}/add-ons/ \
     && chmod -R 777 ${ANDROID_HOME}/add-ons \
     && ls -hAlt ${ANDROID_HOME}/add-ons/ \
     && rm -rf ${ANDROID_HOME}/EMDK_6.9 \
